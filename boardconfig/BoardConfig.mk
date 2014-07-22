@@ -469,6 +469,23 @@ else ifeq ($(TARGET_PRODUCT), cm_k3gxx)
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
     BOARD_USE_B_SLOT_PROTOCOL := true
 
+#Galaxy Tab - p1000
+else ifneq ($(filter $(TARGET_PRODUCT),cm_p1 cm_p1l cm_p1n),)
+    TARGET_COMMON_NAME := Galaxy Tab P1000 ($(TARGET_PRODUCT))
+    BOARD_USE_NTFS_3G := false
+    BOOTLOADER_CMD_ARG := "download"
+    TARGET_USERIMAGES_USE_F2FS := true
+    TARGET_SCREEN_HEIGHT := 600
+    TARGET_SCREEN_WIDTH := 1024
+    BOARD_HAS_LOW_RESOLUTION := true
+    RECOVERY_TOUCHSCREEN_SWAP_XY := true
+    RECOVERY_TOUCHSCREEN_FLIP_X := true
+    BRIGHTNESS_SYS_FILE := "sys/class/backlight/s5p_bl/brightness"  
+    #BOARD_HAS_FLIPPED_SCREEN := true
+    #RECOVERY_TOUCHSCREEN_FLIP_Y := true
+    #RECOVERY_TOUCHSCREEN_FLIP_X := true
+    BOARD_USE_B_SLOT_PROTOCOL := true
+
 #Galaxy Tab 2 - p3100, p3110
 else ifneq ($(filter $(TARGET_PRODUCT),cm_p3100 cm_p3110),)
     TARGET_COMMON_NAME := Galaxy Tab 2 ($(TARGET_PRODUCT))

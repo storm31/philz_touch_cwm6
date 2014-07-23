@@ -27,14 +27,13 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
-#include "common.h"
 #include <cutils/android_reboot.h>
 #include <cutils/properties.h>
-#include "minui/minui.h"
-#include "recovery_ui.h"
-#include "voldclient/voldclient.h"
 
+#include "voldclient/voldclient.h"
+#include "minui/minui.h"
+#include "common.h"
+#include "recovery.h"
 #include "advanced_functions.h"
 #include "recovery_settings.h"
 #include "ui.h"
@@ -757,8 +756,10 @@ void ui_print(const char *fmt, ...)
     if (ui_log_stdout)
         fputs(buf, stdout);
 
+    if (!ui_has_initialized)
+        return;
+
     // now, we write log to screen
-    // This can get called before ui_init(), so be careful.
     pthread_mutex_lock(&gUpdateMutex);
     if (ui_print_replace_lines) {
         int i;

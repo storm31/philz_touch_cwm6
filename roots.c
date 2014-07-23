@@ -209,7 +209,7 @@ static void write_fstab_entry(Volume *v, FILE *file)
     // mtdutils.c/cmd_bml_get_partition_device() always returns -1
     char device[200];
     if (strncmp(v->blk_device, "/", 1) != 0 && get_partition_device(v->blk_device, device) != 0) {
-        fprintf(stderr, "    E: invalid device, skipping /etc/fstab entry\n");
+        fprintf(stderr, "    invalid device, skipping /etc/fstab entry\n");
         return;
     } else {
         strcpy(device, v->blk_device);
@@ -752,6 +752,9 @@ int rmtree_except(const char* path, const char* except)
     return rc;
 }
 
+#ifdef USE_F2FS
+extern int make_f2fs_main(int argc, char **argv);
+#endif
 int format_volume(const char* volume) {
     // check if we're formatting primary_storage (/sdcard) on /data/media device
     // in that case, issue a rm -rf like command
@@ -1120,4 +1123,37 @@ char* get_real_fstype(const char* path) {
         fprintf(stderr, "  get_real_fstype: unknown filesystem (%s)\n", path);
 
     return real_device_fstype;
+}
+
+int is_path_mounted(const char* path) {
+    Volume* v = volume_for_path(path);
+    if (v == NULL) {
+        return 0;
+    }
+    if (strcmp(v->fs_type, "ramdisk") == 0) {
+        // the ramdisk is always mounted.
+        return 1;
+    }
+
+    if (scan_mounted_volumes() < 0)
+        return 0;
+
+    const MountedVolume* mv = find_mounted_volume_by_mount_point(v->mount_point);
+    if (mv) {
+        // volume is already mounted
+        return 1;
+    }
+    return 0;
+}
+
+int has_datadata() {
+    Volume *vol = volume_for_path("/datadata");
+    return vol != NULL;
+}
+
+// recovery command helper to create /etc/fstab and link /data/media path
+int volume_main(int argc, char **argv) {
+    load_volume_table();
+    setup_data_media(1);
+    return 0;
 }

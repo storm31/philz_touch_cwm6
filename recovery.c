@@ -30,22 +30,22 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "bootloader.h"
-#include "common.h"
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
-#include "install.h"
+
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
-#include "roots.h"
-#include "recovery_ui.h"
-
 #include "voldclient/voldclient.h"
-
-#include "adb_install.h"
+#include "libcrecovery/common.h"
 #include "minadbd/adb.h"
+#include "bootloader.h"
+#include "common.h"
+#include "install.h"
+#include "roots.h"
+#include "recovery.h"
+#include "adb_install.h"
 #include "recovery_cmds.h"
-
+#include "edifyscripting.h"
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "advanced_functions.h"
@@ -818,6 +818,7 @@ wipe_data(int confirm) {
         "Wipe all user data ?",
         "   data | cache | datadata",
         "   sd-ext| android_secure",
+        "",
         NULL
     };
 
@@ -965,15 +966,15 @@ prompt_and_wait(int status) {
                     ret = show_nandroid_menu();
                     break;
 
-                case ITEM_PARTITION:
+                case ITEM_MOUNTS:
                     ret = show_partition_mounts_menu();
                     break;
 
                 case ITEM_ADVANCED:
-                    ret = show_advanced_menu();
+                    show_advanced_menu();
                     break;
 
-                case ITEM_PHILZ_MENU:
+                case ITEM_SETTINGS:
                     show_philz_settings_menu();
                     break;
 

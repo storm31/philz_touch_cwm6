@@ -80,15 +80,15 @@ int device_wipe_data();
 #endif
 
 // main menu items for prompt_and_wait()
-#define ITEM_REBOOT          0
-#define ITEM_APPLY_ZIP       1
-#define ITEM_WIPE_DATA       2
-#define ITEM_NANDROID        3
-#define ITEM_PARTITION       4
-#define ITEM_ADVANCED        5
-#define ITEM_PHILZ_MENU      6
-#define ITEM_POWEROFF        7
-#define ITEM_WIPE_CACHE      8  // optional device menu action
+#define ITEM_REBOOT         0
+#define ITEM_APPLY_ZIP      1
+#define ITEM_WIPE_DATA      2
+#define ITEM_NANDROID       3
+#define ITEM_MOUNTS         4
+#define ITEM_ADVANCED       5
+#define ITEM_SETTINGS       6
+#define ITEM_POWEROFF       7
+#define ITEM_WIPE_CACHE     8  // optional device menu action
 
 
 // Header text to display above the main menu.
@@ -116,5 +116,8 @@ void reboot_main_system(int cmd, int flags, char *arg);
 
 // Show a stage indicator.
 void ui_SetStage(int current, int max);
+
+int erase_volume(const char *volume);
+void wipe_data(int confirm);
 
 #endif

@@ -65,12 +65,6 @@ void nandroid_generate_timestamp_path(char* backup_path) {
     }
 }
 
-void ensure_directory(const char* dir) {
-    char tmp[PATH_MAX];
-    sprintf(tmp, "mkdir -p %s && chmod 777 %s", dir, dir);
-    __system(tmp);
-}
-
 int print_and_error(const char* message, int ret) {
     ui_reset_progress();
     ui_set_background(BACKGROUND_ICON_ERROR);
@@ -298,7 +292,7 @@ static int dedupe_compress_wrapper(const char* backup_path, const char* backup_f
     d = dirname(blob_dir);
     strcpy(blob_dir, d);
     strcat(blob_dir, "/blobs");
-    ensure_directory(blob_dir);
+    ensure_directory(blob_dir, 0755);
 
     if (!(nandroid_backup_bitfield & NANDROID_FIELD_DEDUPE_CLEARED_SPACE)) {
         nandroid_backup_bitfield |= NANDROID_FIELD_DEDUPE_CLEARED_SPACE;
@@ -532,16 +526,7 @@ int nandroid_backup(const char* backup_path) {
     if (ensure_path_mounted(backup_path) != 0) {
         return print_and_error("Can't mount backup path.\n", NANDROID_ERROR_GENERAL);
     }
-/*
-    // replaced by Get_Size_Via_statfs() check
-    Volume* volume;
-    if (is_data_media_volume_path(backup_path))
-        volume = volume_for_path("/data");
-    else
-        volume = volume_for_path(backup_path);
-    if (NULL == volume)
-        return print_and_error("Unable to find volume for backup path.\n", NANDROID_ERROR_GENERAL);
-*/
+
     int ret;
     struct statfs s;
 
@@ -563,7 +548,7 @@ int nandroid_backup(const char* backup_path) {
 #endif
 
     char tmp[PATH_MAX];
-    ensure_directory(backup_path);
+    ensure_directory(backup_path, 0755);
 
     if (backup_boot && volume_for_path(BOOT_PARTITION_MOUNT_POINT) != NULL &&
             0 != (ret = nandroid_backup_partition(backup_path, BOOT_PARTITION_MOUNT_POINT)))
@@ -582,7 +567,7 @@ int nandroid_backup(const char* backup_path) {
 #endif
 
     Volume *vol = volume_for_path("/wimax");
-    if (backup_wimax && vol != NULL && 0 == statfs(vol->blk_device, &s)) {
+    if (backup_wimax && vol != NULL && statfs(vol->blk_device, &s) == 0) {
         char serialno[PROPERTY_VALUE_MAX];
         ui_print("\n>> Backing up WiMAX...\n");
         serialno[0] = 0;
@@ -1015,7 +1000,7 @@ int nandroid_restore_partition_extended(const char* backup_path, const char* mou
         backup_filesystem = NULL;
 #endif
 
-    ensure_directory(mount_point);
+    ensure_directory(mount_point, 0755);
 
     char path[PATH_MAX];
     sprintf(path, "%s/%s", get_primary_storage_path(), NANDROID_HIDE_PROGRESS_FILE);

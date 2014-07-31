@@ -36,18 +36,20 @@
 #include <sys/wait.h>
 #include <libgen.h> // basename
 
-#include "common.h"
-#include "cutils/properties.h"
-#include "install.h"
+#include <cutils/properties.h>
+
+#include "edify/expr.h"
+#include "libcrecovery/common.h"
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
+#include "edifyscripting.h"
+#include "common.h"
+#include "install.h"
 #include "roots.h"
 #include "recovery_ui.h"
-
 #include "extendedcommands.h"
 #include "recovery_settings.h"
 #include "nandroid.h"
-#include "edify/expr.h"
 
 extern int yyparse();
 extern int yy_scan_bytes();
@@ -211,6 +213,8 @@ Value* RestoreFn(const char* name, State* state, int argc, Expr* argv[]) {
             restorecache = 0;
         else if (strcmp(args2[i], "nosd-ext") == 0)
             restoresdext = 0;
+        else if (strcmp(args2[i], "nomd5") == 0)
+            enable_md5sum.value = 0;
     }
     
     for (i = 0; i < argc; ++i) {

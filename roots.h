@@ -49,12 +49,14 @@ int format_volume(const char* volume);
 // mounted (/tmp and /cache) are mounted.  Returns 0 on success.
 int setup_install_mounts();
 
+// storage
 char* get_primary_storage_path();
 char** get_extra_storage_paths();
 char* get_android_secure_path();
 void setup_legacy_storage_paths();
 int get_num_extra_volumes();
 int get_num_volumes();
+int is_primary_storage_voldmanaged();
 
 Volume* get_device_volumes();
 
@@ -63,6 +65,10 @@ void setup_data_media(int mount);
 int is_data_media_volume_path(const char* path);
 void preserve_data_media(int val);
 int is_data_media_preserved();
+
+// check if it is an extra storage volume
+int is_volume_primary_storage(Volume* v);
+int is_volume_extra_storage(Volume* v);
 
 #define MAX_NUM_MANAGED_VOLUMES 10
 
@@ -74,6 +80,10 @@ int format_device(const char *device, const char *path, const char *fs_type);
 // support format MTD, MMC, BML, ext2, ext3 and directory rm -rf like if a path is passed
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
 
+void set_ensure_mount_always_true(int state);
 char* get_real_fstype(const char* path);
+int has_datadata();
+int is_path_mounted(const char* path);
+int volume_main(int argc, char **argv);
 
 #endif  // RECOVERY_ROOTS_H_

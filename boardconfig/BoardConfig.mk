@@ -6,8 +6,6 @@
 #
 # Info on some tags
 #   - KERNEL_EXFAT_MODULE_NAME: This will force minivold to use much faster kernel modules instead of slow fuse
-#                               it will only work if you have modified vold sources (contact me for info)
-#                               you'll also have to copy modules to ramdisk and load them in init.rc or a loader script
 #                               you need either an exfat enabled prebuilt kernel or to compile exfat modules along kernel
 #                               you also need to patch minivold: https://github.com/PhilZ-cwm6/android_system_vold
 #   - KERNEL_NTFS_MODULE_NAME:  Same as above, but for ntfs. Currently, it is only limited write support. Better drop to fuse
@@ -60,6 +58,15 @@
 #                               In any case, user can toggle the storage path by create/delete the file /data/media/.cwm_force_data_media
 #                               This is achieved through the Advanced menu
 #
+#   - TARGET_USE_CUSTOM_LUN_FILE_PATH := "/sys/class/android_usb/android%d/f_mass_storage/lun/file"
+#                               It will add custom lun path support to vold (mount usb storage). For vold support, it must be in main device tree
+#                               If recovery has no vold support, it will enable mount usb storage for non vold managed storage
+#
+#   - BOARD_UMS_LUNFILE := "/sys/class/android_usb/android%d/f_mass_storage/lun/file"
+#                               Same as TARGET_USE_CUSTOM_LUN_FILE_PATH except it is not used by vold
+#                               You can also define both for non vold managed storage
+#
+
 
 #Amazon Kindle Fire HD 8.9 (jem)
 ifeq ($(TARGET_PRODUCT), cm_jem)
@@ -864,15 +871,15 @@ else ifeq ($(TARGET_PRODUCT), cm_mb886)
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola - unified moto_msm8960 (mb886, xt925, xt926)
+#Motorola - unified moto_msm8960 (mb886, xt925, xt926, xt901, xt905, xt907)
 else ifeq ($(TARGET_PRODUCT), cm_moto_msm8960)
     TARGET_COMMON_NAME := Droid msm8960
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
     BRIGHTNESS_SYS_FILE := "/sys/class/backlight/lcd-backlight/brightness"
 
-#Motorola Moto X: TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060)
-else ifneq ($(filter $(TARGET_PRODUCT),cm_xt1053 cm_xt1055 cm_xt1056 cm_xt1058 cm_xt1060),)
+#Motorola Moto X: unified moto_msm8960dt [TMO (xt1053), US Cellular (xt1055), Sprint (xt1056), GSM (xt1058), VZW (xt1060), VZW Droid Maxx-Dev Edition (xt1080)]
+else ifneq ($(filter $(TARGET_PRODUCT),moto_msm8960dt),)
     TARGET_COMMON_NAME := Moto X ($(TARGET_PRODUCT))
     TARGET_SCREEN_HEIGHT := 1280
     TARGET_SCREEN_WIDTH := 720
@@ -905,6 +912,14 @@ else ifeq ($(TARGET_PRODUCT), cm_find7)
     TARGET_COMMON_NAME := Oppo Find7
     TARGET_SCREEN_HEIGHT := 1920
     TARGET_SCREEN_WIDTH := 1080
+    BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
+
+#Sony Xperia M (nicki)
+else ifeq ($(TARGET_PRODUCT), cm_nicki)
+    TARGET_COMMON_NAME := Xperia M
+    #KERNEL_EXFAT_MODULE_NAME := "texfat"
+    TARGET_SCREEN_HEIGHT := 854
+    TARGET_SCREEN_WIDTH := 480
     BRIGHTNESS_SYS_FILE := "/sys/class/leds/lcd-backlight/brightness"
 
 #Sony Xperia Z (yuga)

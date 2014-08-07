@@ -54,7 +54,7 @@
 #include "minui/minui.h"
 #include "minzip/DirUtil.h"
 #include "roots.h"
-#include "recovery.h"
+#include "recovery_ui.h"
 #include "ui.h"
 #include "extendedcommands.h"
 #include "advanced_functions.h"
@@ -167,7 +167,7 @@ int force_wait = -1;
 //  * one key (KEY_LEFTBRACE) will handle all gesture defined movements
 //  * the int key_gesture is assigned the touch gesture code (SLIDE_LEFT_GESTURE, SLIDE_RIGHT_GESTURE or DOUBLE_TAP_GESTURE)
 // in the active menu, get_menu_selection() / ui_wait_key() stop watching for a key as it detected KEY_LEFTBRACE
-// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery.h)
+// ui_handle_key() calls device_handle_key() in philz_keys_s2.c, and KEY_LEFTBRACE will return GESTURE_ACTIONS code (defined in recovery_ui.h)
 // back to recovery.c / get_menu_selection(), action = GESTURE_ACTIONS will launch handle_gesture_actions() and set chosen_item = GESTURE_ACTIONS
 // handle_gesture_actions() is launched while menu is still showing on screen, since ui_end_menu() was not yet called
 // handle_gesture_actions() will read key_gesture value assigned above and run the action associated to the gesture
@@ -1463,14 +1463,19 @@ static void change_menu_color() {
 /**********************************/
 /*   Start touch gesture actions  */
 /**********************************/
-// capture screen using fb2png and incremental file names
+// capture screen to incremental file names
 // prefer second storage paths first, then primary storage
-static void fb2png_shot() {
-    if (!libtouch_flags.board_use_fb2png) {
-        LOGE("fb2png not supported on this device!\n");
-        return;
-    }
+#define FB2PNG_BIN "/sbin/fb2png" // recovery_cmds.h
+static int fb2png_capture(const char* file_path) {
+    if (!file_found(FB2PNG_BIN))
+        return -1;
 
+    char cmd[PATH_MAX];
+    sprintf(cmd, "%s %s", FB2PNG_BIN, file_path);
+    return __system(cmd);
+}
+
+static void screen_shot() {
     char* sd_path = NULL;
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
@@ -1495,11 +1500,11 @@ static void fb2png_shot() {
     }
 
     // reads index file to increment filename
-    char tmp[PATH_MAX];
+    char path[PATH_MAX];
     char line[5]; // xxxx + new line, so that when it reaches 1000 it doesn't read it as 100
     long int file_num = 1;
-    sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
-    FILE *fp = fopen(tmp, "r");
+    sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    FILE *fp = fopen(path, "r");
     if (fp != NULL) {
         if (fgets(line, sizeof(line), fp) != NULL) {
             file_num = strtol(line, NULL, 10);
@@ -1512,16 +1517,24 @@ static void fb2png_shot() {
 
     // capture screen
     char dirtmp[PATH_MAX];
-    sprintf(dirtmp, "%s", DirName(tmp));
+    int ret;
+    sprintf(dirtmp, "%s", DirName(path));
     ensure_directory(dirtmp, 0755);
-    sprintf(tmp, "fb2png %s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
-    if (0 == __system(tmp)) {
-        ui_print("screen shot: %s\n", tmp + 7); // strlen("fb2png ")
-        sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    sprintf(path, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
+    ret = gr_save_screenshot(path);
+    if (ret == -2) {
+        // device uses a custom graphics.c
+        // try to use libfb2png
+        ret = fb2png_capture(path);
+        ui_print("custom graphics source detected: dropping to fb2png mode:\n");
+    }
+    if (ret == 0) {
+        ui_print("screen shot: %s\n", path);
+        sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
         sprintf(line, "%ld", file_num);
-        write_string_to_file(tmp, line);
+        write_string_to_file(path, line);
     } else {
-        ui_print("screen capture failed\n");
+        LOGE("screen capture failed\n");
     }
     free_string_array(extra_paths);
 }
@@ -1530,7 +1543,7 @@ static void fb2png_shot() {
 //  - they are only triggered when in a menu prompt view (get_menu_selection())
 //  - we also disable them if progress bar is being shown
 //    this can happen in md5 display/verify threads where we have progress bar while waiting for menu action
-//    fb2png and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
+//    screen capture and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
 void handle_gesture_actions(const char** headers, char** items, int initial_selection) {
     int action = DISABLE_ACTION;
     if (ui_showing_progress_bar())
@@ -1548,7 +1561,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 
     switch (action) {
         case SCREEN_CAPTURE_ACTION:
-            fb2png_shot();
+            screen_shot();
             break;
         case AROMA_BROWSER_ACTION:
             ui_end_menu();
@@ -2635,14 +2648,14 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     sprintf(cmd, "mkdir -p %s/META-INF/com/google/android", tmp_path);
     __system(cmd);
 
-    if (NULL == source_path) {
+    if (source_path == NULL) {
         // create a nandroid backup from existing ROM and use it for update.zip
         backup_recovery = 0, backup_wimax = 0, backup_data = 0, backup_cache = 0, backup_sdext = 0;
         nandroid_force_backup_format("tar");
         ret = nandroid_backup(tmp_path);
         nandroid_force_backup_format("");
         backup_recovery = 1, backup_wimax = 1, backup_data = 1, backup_cache = 1, backup_sdext = 1;
-        if (0 != ret) {
+        if (ret != 0) {
             LOGE("Error while creating a nandroid image!\n");
             return ret;
         }
@@ -2666,7 +2679,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     ensure_path_unmounted("/system");
 
     //restore nandroid backup source folder
-    if (!(NULL == source_path)) {
+    if (source_path != NULL) {
         sprintf(cmd, "cd %s; mv boot.* system.* preload.* %s", tmp_path, source_path);
         __system(cmd);
     }
@@ -2675,7 +2688,7 @@ static int make_update_zip(const char* source_path, const char* target_volume) {
     sprintf(cmd, "rm -rf '%s'", tmp_path);
     __system(cmd);
 
-    if (0 != ret) {
+    if (ret != 0) {
         return print_and_error("Error while making a zip image!\n", ret);
     }
 

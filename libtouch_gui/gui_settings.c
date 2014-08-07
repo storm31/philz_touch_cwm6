@@ -1463,14 +1463,19 @@ static void change_menu_color() {
 /**********************************/
 /*   Start touch gesture actions  */
 /**********************************/
-// capture screen using fb2png and incremental file names
+// capture screen to incremental file names
 // prefer second storage paths first, then primary storage
-static void fb2png_shot() {
-    if (!libtouch_flags.board_use_fb2png) {
-        LOGE("fb2png not supported on this device!\n");
-        return;
-    }
+#define FB2PNG_BIN "/sbin/fb2png" // recovery_cmds.h
+static int fb2png_capture(const char* file_path) {
+    if (!file_found(FB2PNG_BIN))
+        return -1;
 
+    char cmd[PATH_MAX];
+    sprintf(cmd, "%s %s", FB2PNG_BIN, file_path);
+    return __system(cmd);
+}
+
+static void screen_shot() {
     char* sd_path = NULL;
     char** extra_paths = get_extra_storage_paths();
     int num_extra_volumes = get_num_extra_volumes();
@@ -1495,11 +1500,11 @@ static void fb2png_shot() {
     }
 
     // reads index file to increment filename
-    char tmp[PATH_MAX];
+    char path[PATH_MAX];
     char line[5]; // xxxx + new line, so that when it reaches 1000 it doesn't read it as 100
     long int file_num = 1;
-    sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
-    FILE *fp = fopen(tmp, "r");
+    sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    FILE *fp = fopen(path, "r");
     if (fp != NULL) {
         if (fgets(line, sizeof(line), fp) != NULL) {
             file_num = strtol(line, NULL, 10);
@@ -1512,16 +1517,24 @@ static void fb2png_shot() {
 
     // capture screen
     char dirtmp[PATH_MAX];
-    sprintf(dirtmp, "%s", DirName(tmp));
+    int ret;
+    sprintf(dirtmp, "%s", DirName(path));
     ensure_directory(dirtmp, 0755);
-    sprintf(tmp, "fb2png %s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
-    if (0 == __system(tmp)) {
-        ui_print("screen shot: %s\n", tmp + 7); // strlen("fb2png ")
-        sprintf(tmp, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
+    sprintf(path, "%s/%s/cwm_screen%03ld.png", sd_path, SCREEN_CAPTURE_FOLDER, file_num);
+    ret = gr_save_screenshot(path);
+    if (ret == -2) {
+        // device uses a custom graphics.c
+        // try to use libfb2png
+        ret = fb2png_capture(path);
+        ui_print("custom graphics source detected: dropping to fb2png mode:\n");
+    }
+    if (ret == 0) {
+        ui_print("screen shot: %s\n", path);
+        sprintf(path, "%s/%s/index", sd_path, SCREEN_CAPTURE_FOLDER);
         sprintf(line, "%ld", file_num);
-        write_string_to_file(tmp, line);
+        write_string_to_file(path, line);
     } else {
-        ui_print("screen capture failed\n");
+        LOGE("screen capture failed\n");
     }
     free_string_array(extra_paths);
 }
@@ -1530,7 +1543,7 @@ static void fb2png_shot() {
 //  - they are only triggered when in a menu prompt view (get_menu_selection())
 //  - we also disable them if progress bar is being shown
 //    this can happen in md5 display/verify threads where we have progress bar while waiting for menu action
-//    fb2png and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
+//    screen capture and brightness actions call unsafe thread functions: basename, dirname, ensure_path_mounted()
 void handle_gesture_actions(const char** headers, char** items, int initial_selection) {
     int action = DISABLE_ACTION;
     if (ui_showing_progress_bar())
@@ -1548,7 +1561,7 @@ void handle_gesture_actions(const char** headers, char** items, int initial_sele
 
     switch (action) {
         case SCREEN_CAPTURE_ACTION:
-            fb2png_shot();
+            screen_shot();
             break;
         case AROMA_BROWSER_ACTION:
             ui_end_menu();

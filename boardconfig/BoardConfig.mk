@@ -37,7 +37,7 @@
 #   - BOARD_HAS_SLOW_STORAGE := true
 #                               when defined, size progress info during backup/restore will be disabled on default settings
 #   - BOARD_HAS_NO_FB2PNG := true
-#                               define this to disable fb2png support and spare some space (do not use screen capture)
+#                               define this to disable fb2png shell support and spare some space (do not use screen capture in adb shell)
 #   - BOARD_USE_NTFS_3G := false
 #                               will not include ntfs-3g binary to format and mount NTFS partitions. This can spare about 300kb space
 #                               devices using NTFS kernel modules will still be able to mount NTFS but not format to NTFS
@@ -65,6 +65,12 @@
 #   - BOARD_UMS_LUNFILE := "/sys/class/android_usb/android%d/f_mass_storage/lun/file"
 #                               Same as TARGET_USE_CUSTOM_LUN_FILE_PATH except it is not used by vold
 #                               You can also define both for non vold managed storage
+#
+#   - BOARD_CUSTOM_GRAPHICS: this flag is set in device tree board config file. It will cause disabling of gr_save_screenshot() function
+#                            on screen capture, recovery will fall to fb2png if it is available
+#                            to enable use of built in gr_save_screenshot() instead of fb2png, you must:
+#                               * remove "LOCAL_CFLAGS += -DHAS_CUSTOM_GRAPHICS" line from bootable/recovery/minui/Android.mk
+#                               * fix any compiler error caused by the custom graphics.c (https://github.com/PhilZ-cwm6/philz_touch_cwm6/commit/4fb941bcb4824b4dd6a812960ed4870ee929da4e#diff-f71f8d16e94c30dfbe7ef8306e4e4428L68)
 #
 
 

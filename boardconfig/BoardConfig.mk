@@ -483,7 +483,7 @@ else ifeq ($(TARGET_DEVICE), k3gxx)
     BOARD_USE_B_SLOT_PROTOCOL := true
 
 #Galaxy Tab - p1000
-else ifneq ($(filter $(TARGET_PRODUCT),cm_p1 cm_p1l cm_p1n),)
+else ifneq ($(filter $(TARGET_DEVICE),cm_p1 cm_p1l cm_p1n),)
     TARGET_COMMON_NAME := Galaxy Tab P1000 ($(TARGET_PRODUCT))
     BOARD_USE_NTFS_3G := false
     BOOTLOADER_CMD_ARG := "download"
